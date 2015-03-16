@@ -166,6 +166,9 @@ private:
 			}
 		}
 		
+		// force enable D3D debug mode
+		Flags |= D3D11_CREATE_DEVICE_DEBUG;
+		
 		DXGI_SWAP_CHAIN_DESC swapDesc;
 		DXGI_SWAP_CHAIN_DESC *pUsedSwapDesc = NULL;
 

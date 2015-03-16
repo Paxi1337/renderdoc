@@ -298,9 +298,14 @@ bool WrappedID3D11DeviceContext::Serialise_IASetPrimitiveTopology(D3D11_PRIMITIV
 
 	if(m_State <= EXECUTING)
 	{
+		Flush();
+		RDCLOG("vv WrappedID3D11DeviceContext::Serialise_IASetPrimitiveTopology(%u)", Topology);
+
 		m_CurrentPipelineState->Change(m_CurrentPipelineState->IA.Topo, Topology);
 		m_pRealContext->IASetPrimitiveTopology(Topology);
 		VerifyState();
+
+		RDCLOG("^^ WrappedID3D11DeviceContext::Serialise_IASetPrimitiveTopology(%u)", Topology);
 	}
 
 	return true;

@@ -197,14 +197,24 @@ bool ReplayRenderer::SetFrameEvent(uint32_t frameID, uint32_t eventID, bool forc
 		m_FrameID = frameID;
 		m_EventID = eventID;
 
+		RDCLOG("Setting frame event to %u (%s)", eventID, force ? "force" : "");
+
 		m_pDevice->ReplayLog(frameID, 0, eventID, eReplay_WithoutDraw);
+		
+		RDCLOG("Replayed without drawing, fetching pipeline state");
 
 		FetchPipelineState();
+		
+		RDCLOG("Fetched pipeline state, iterating over outputs");
 
 		for(size_t i=0; i < m_Outputs.size(); i++)
 			m_Outputs[i]->SetFrameEvent(frameID, eventID);
-		
+
+		RDCLOG("Replaying draw");
+
 		m_pDevice->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+
+		RDCLOG("done");
 	}
 
 	return true;
@@ -1250,6 +1260,8 @@ ReplayOutput *ReplayRenderer::CreateOutput(void *wndhandle)
 {
 	ReplayOutput *out = new ReplayOutput(this, wndhandle);
 
+	RDCLOG("Creating output for %p", wndhandle);
+
 	m_Outputs.push_back(out);
 
 	m_pDevice->ReplayLog(m_FrameID, 0, m_EventID, eReplay_WithoutDraw);
@@ -1257,6 +1269,8 @@ ReplayOutput *ReplayRenderer::CreateOutput(void *wndhandle)
 	out->SetFrameEvent(m_FrameID, m_EventID);
 
 	m_pDevice->ReplayLog(m_FrameID, 0, m_EventID, eReplay_OnlyDraw);
+
+	RDCLOG("Created output for %p", wndhandle);
 
 	return out;
 }

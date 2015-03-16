@@ -943,6 +943,9 @@ void WrappedID3D11Device::ReadLogInitialisation()
 {
 	uint64_t lastFrame = 0;
 	uint64_t firstFrame = 0;
+	
+	m_pImmediateContext->Flush();
+	RDCLOG("WrappedID3D11Device::ReadLogInitialisation()");
 
 	LazyInit();
 
@@ -1037,8 +1040,10 @@ void WrappedID3D11Device::ReadLogInitialisation()
 				GetChunkName(it->first), uint32_t(it->first)
 				);
 	}
-
+	
 	RDCDEBUG("Allocating %llu persistant bytes of memory for the log.", m_pSerialiser->GetSize() - firstFrame);
+	m_pImmediateContext->Flush();
+	RDCLOG("end WrappedID3D11Device::ReadLogInitialisation()");
 	
 	m_pSerialiser->SetDebugText(false);
 	
@@ -2153,11 +2158,14 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 void WrappedID3D11Device::Apply_InitialState(ID3D11DeviceChild *live, D3D11ResourceManager::InitialContentData initial)
 {
 	ResourceType type = IdentifyTypeByPtr(live);
+	
+	m_pImmediateContext->Flush();
+	RDCLOG("vv Apply_InitialState %d / %d", type, initial.num);
 
 	if(type == Resource_UnorderedAccessView)
 	{
 		ID3D11UnorderedAccessView *uav = (ID3D11UnorderedAccessView *)live;
-
+		
 		m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &uav, &initial.num);
 	}
 	else
@@ -2183,6 +2191,9 @@ void WrappedID3D11Device::Apply_InitialState(ID3D11DeviceChild *live, D3D11Resou
 			RDCERR("Unexpected initial contents type");
 		}
 	}
+
+	m_pImmediateContext->Flush();
+	RDCLOG("^^ Apply_InitialState UAV");
 }
 
 void WrappedID3D11Device::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv)
@@ -2195,6 +2206,9 @@ void WrappedID3D11Device::SetContextFilter(ResourceId id, uint32_t firstDefEv, u
 void WrappedID3D11Device::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType)
 {
 	RDCASSERT(frameID < (uint32_t)m_FrameRecord.size());
+	
+	m_pImmediateContext->Flush();
+	RDCLOG("01 WrappedID3D11Device::ReplayLog %d->%d, %d", startEventID, endEventID, replayType);
 
 	uint64_t offs = m_FrameRecord[frameID].frameInfo.fileOffset;
 
@@ -2218,10 +2232,13 @@ void WrappedID3D11Device::ReplayLog(uint32_t frameID, uint32_t startEventID, uin
 	
 	if(!partial)
 	{
+		RDCLOG("02 WrappedID3D11Device::ReplayLog Applying initial contents");
 		GetResourceManager()->ApplyInitialContents();
 		GetResourceManager()->ReleaseInFrameResources();
+		m_pImmediateContext->Flush();
+		RDCLOG("03 WrappedID3D11Device::ReplayLog Done applying initial contents");
 	}
-
+	
 	m_State = EXECUTING;
 	
 	if(m_ReplayDefCtx == ResourceId())
@@ -2269,6 +2286,9 @@ void WrappedID3D11Device::ReplayLog(uint32_t frameID, uint32_t startEventID, uin
 
 		m_pImmediateContext->ReplayFakeContext(ResourceId());
 	}
+	
+	m_pImmediateContext->Flush();
+	RDCLOG("04 WrappedID3D11Device::ReplayLog Done");
 }
 
 void WrappedID3D11Device::ReleaseSwapchainResources(IDXGISwapChain *swap)

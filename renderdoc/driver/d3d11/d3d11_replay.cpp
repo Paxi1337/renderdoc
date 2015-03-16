@@ -427,6 +427,9 @@ vector<ResourceId> D3D11Replay::GetTextures()
 D3D11PipelineState D3D11Replay::MakePipelineState()
 {
 	D3D11RenderState *rs = m_pDevice->GetImmediateContext()->GetCurrentPipelineState();
+	
+	m_pDevice->GetImmediateContext()->Flush();
+	RDCLOG("D3D11Replay::MakePipelineState start");
 
 	D3D11PipelineState ret;
 
@@ -1182,6 +1185,9 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 			ret.m_OM.m_State.m_BackFace.FailOp = ToStr::Get(D3D11_STENCIL_OP_KEEP);
 		}
 	}
+	
+	m_pDevice->GetImmediateContext()->Flush();
+	RDCLOG("D3D11Replay::MakePipelineState end");
 
 	return ret;
 }

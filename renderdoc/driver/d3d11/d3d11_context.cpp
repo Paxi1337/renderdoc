@@ -1179,12 +1179,18 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 
 	ResourceId id;
 	m_pSerialiser->Serialise("context", id);
+	
+	Flush();
+	RDCLOG("01 WrappedID3D11DeviceContext::ReplayLog %d->%d, %s", startEventID, endEventID, partial ? "partial" : "complete");
 
 	WrappedID3D11DeviceContext *context = (WrappedID3D11DeviceContext *)m_pDevice->GetResourceManager()->GetLiveResource(id);
 	
 	RDCASSERT(WrappedID3D11DeviceContext::IsAlloc(context) && context == this);
 
 	Serialise_BeginCaptureFrame(!partial);
+	
+	Flush();
+	RDCLOG("02 WrappedID3D11DeviceContext::ReplayLog applied pipeline state");
 
 	m_pSerialiser->PopContext(NULL, header);
 
@@ -1212,6 +1218,11 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 	}
 
 	m_pDevice->GetResourceManager()->MarkInFrame(true);
+	
+	Flush();
+	RDCLOG("03 WrappedID3D11DeviceContext::ReplayLog starting replay loop");
+
+	int numevents = 0;
 
 	while(1)
 	{
@@ -1220,6 +1231,8 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 			// we can just break out if we've done all the events desired.
 			break;
 		}
+
+		numevents++;
 
 		uint64_t offset = m_pSerialiser->GetOffset();
 
@@ -1236,6 +1249,9 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 		
 		m_CurEventID++;
 	}
+	
+	Flush();
+	RDCLOG("04 WrappedID3D11DeviceContext::ReplayLog ending replay loop, replayed %d events", numevents);
 
 	if(m_State == READING)
 	{

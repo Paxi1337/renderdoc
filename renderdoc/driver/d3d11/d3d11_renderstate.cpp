@@ -778,6 +778,9 @@ void D3D11RenderState::ApplyState(WrappedID3D11DeviceContext *context)
 {
 	context->ClearState();
 
+	context->Flush();
+	RDCLOG("D3D11RenderState::ApplyState Topology: %u", IA.Topo);
+
 	// IA
 	context->IASetInputLayout(IA.Layout);
 	context->IASetPrimitiveTopology(IA.Topo);
@@ -847,6 +850,9 @@ void D3D11RenderState::ApplyState(WrappedID3D11DeviceContext *context)
 	context->OMSetRenderTargetsAndUnorderedAccessViews(OM.UAVStartSlot, OM.RenderTargets,
 														OM.DepthView,
 														OM.UAVStartSlot, D3D11_PS_CS_UAV_REGISTER_COUNT-OM.UAVStartSlot, OM.UAVs, UAV_keepcounts);
+	
+	context->Flush();
+	RDCLOG("D3D11RenderState::ApplyState applied");
 }
 
 void D3D11RenderState::TakeRef(IUnknown *p)

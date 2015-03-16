@@ -156,6 +156,8 @@ void ReplayOutput::RefreshOverlay()
 
 	if(m_Config.m_Type == eOutputType_TexDisplay && m_RenderData.texDisplay.overlay != eTexOverlay_None)
 	{
+		RDCLOG("Doing texture RefreshOverlay()");
+
 		if(draw && m_pDevice->IsRenderOutput(m_RenderData.texDisplay.texid))
 		{
 			m_OverlayResourceId = m_pDevice->RenderOverlay(m_pDevice->GetLiveID(m_RenderData.texDisplay.texid), m_RenderData.texDisplay.overlay,
@@ -166,6 +168,8 @@ void ReplayOutput::RefreshOverlay()
 
 	if(m_Config.m_Type == eOutputType_MeshDisplay && m_OverlayDirty)
 	{
+		RDCLOG("Doing mesh RefreshOverlay()");
+
 		m_OverlayDirty = false;
 
 		if(draw == NULL || (draw->flags & eDraw_Drawcall) == 0)
@@ -267,6 +271,8 @@ bool ReplayOutput::AddThumbnail(void *wnd, ResourceId texID)
 
 bool ReplayOutput::PickPixel(ResourceId tex, bool customShader, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *ret)
 {
+	RDCLOG("picking pixel");
+
 	if(ret == NULL || tex == ResourceId()) return false;
 
 	RDCEraseEl(ret->value_f);
@@ -327,6 +333,8 @@ void ReplayOutput::DisablePixelContext()
 
 void ReplayOutput::DisplayContext()
 {
+	RDCLOG("Doing context display");
+
 	if(m_PixelContext.outputID == 0) return;
 	float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 	m_pDevice->BindOutputWindow(m_PixelContext.outputID, false);
@@ -373,6 +381,8 @@ void ReplayOutput::DisplayContext()
 
 bool ReplayOutput::Display()
 {
+	RDCLOG("Doing output display");
+
 	if(m_pDevice->CheckResizeOutputWindow(m_MainOutput.outputID))
 	{
 		m_pDevice->GetOutputWindowDimensions(m_MainOutput.outputID, m_Width, m_Height);
@@ -469,6 +479,8 @@ bool ReplayOutput::Display()
 
 void ReplayOutput::DisplayTex()
 {
+	RDCLOG("Doing texture display");
+
 	FetchDrawcall *draw = m_pRenderer->GetDrawcallByEID(m_EventID, m_LastDeferredEvent);
 	
 	if(m_MainOutput.outputID == 0) return;
@@ -537,6 +549,8 @@ void ReplayOutput::DisplayTex()
 
 void ReplayOutput::DisplayMesh()
 {
+	RDCLOG("Doing mesh display");
+
 	FetchDrawcall *draw = m_pRenderer->GetDrawcallByEID(m_EventID, m_LastDeferredEvent);
 
 	if(!draw) return;
