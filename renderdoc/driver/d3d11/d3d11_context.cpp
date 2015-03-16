@@ -1180,7 +1180,7 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 	ResourceId id;
 	m_pSerialiser->Serialise("context", id);
 	
-	Flush();
+	Flush(); { HRESULT devRemoved = m_pDevice->GetDeviceRemovedReason(); if(devRemoved != S_OK) RDCFATAL("device removed detected"); }
 	RDCLOG("01 WrappedID3D11DeviceContext::ReplayLog %d->%d, %s", startEventID, endEventID, partial ? "partial" : "complete");
 
 	WrappedID3D11DeviceContext *context = (WrappedID3D11DeviceContext *)m_pDevice->GetResourceManager()->GetLiveResource(id);
@@ -1189,7 +1189,7 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 
 	Serialise_BeginCaptureFrame(!partial);
 	
-	Flush();
+	Flush(); { HRESULT devRemoved = m_pDevice->GetDeviceRemovedReason(); if(devRemoved != S_OK) RDCFATAL("device removed detected"); }
 	RDCLOG("02 WrappedID3D11DeviceContext::ReplayLog applied pipeline state");
 
 	m_pSerialiser->PopContext(NULL, header);
@@ -1219,7 +1219,7 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 
 	m_pDevice->GetResourceManager()->MarkInFrame(true);
 	
-	Flush();
+	Flush(); { HRESULT devRemoved = m_pDevice->GetDeviceRemovedReason(); if(devRemoved != S_OK) RDCFATAL("device removed detected"); }
 	RDCLOG("03 WrappedID3D11DeviceContext::ReplayLog starting replay loop");
 
 	int numevents = 0;
@@ -1240,6 +1240,12 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 
 		ProcessChunk(offset, chunktype, false);
 		
+		if(m_State == READING)
+		{
+			Flush(); { HRESULT devRemoved = m_pDevice->GetDeviceRemovedReason(); if(devRemoved != S_OK) RDCFATAL("device removed detected"); }
+			RDCLOG("03.5 WrappedID3D11DeviceContext::ReplayLog replayed %u - %s", m_CurEventID, m_pDevice->GetChunkName(chunktype));
+		}
+		
 		RenderDoc::Inst().SetProgress(FileInitialRead, float(offset)/float(m_pSerialiser->GetSize()));
 		
 		// for now just abort after capture scope. Really we'd need to support multiple frames
@@ -1250,7 +1256,7 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 		m_CurEventID++;
 	}
 	
-	Flush();
+	Flush(); { HRESULT devRemoved = m_pDevice->GetDeviceRemovedReason(); if(devRemoved != S_OK) RDCFATAL("device removed detected"); }
 	RDCLOG("04 WrappedID3D11DeviceContext::ReplayLog ending replay loop, replayed %d events", numevents);
 
 	if(m_State == READING)

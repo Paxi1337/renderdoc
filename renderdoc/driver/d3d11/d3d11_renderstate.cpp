@@ -778,7 +778,7 @@ void D3D11RenderState::ApplyState(WrappedID3D11DeviceContext *context)
 {
 	context->ClearState();
 
-	context->Flush();
+	context->Flush(); { HRESULT devRemoved = context->m_pDevice->GetDeviceRemovedReason(); if(devRemoved != S_OK) RDCFATAL("device removed detected"); }
 	RDCLOG("D3D11RenderState::ApplyState Topology: %u", IA.Topo);
 
 	// IA
@@ -851,7 +851,7 @@ void D3D11RenderState::ApplyState(WrappedID3D11DeviceContext *context)
 														OM.DepthView,
 														OM.UAVStartSlot, D3D11_PS_CS_UAV_REGISTER_COUNT-OM.UAVStartSlot, OM.UAVs, UAV_keepcounts);
 	
-	context->Flush();
+	context->Flush(); { HRESULT devRemoved = context->m_pDevice->GetDeviceRemovedReason(); if(devRemoved != S_OK) RDCFATAL("device removed detected"); }
 	RDCLOG("D3D11RenderState::ApplyState applied");
 }
 

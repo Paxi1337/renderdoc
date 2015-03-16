@@ -428,7 +428,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 {
 	D3D11RenderState *rs = m_pDevice->GetImmediateContext()->GetCurrentPipelineState();
 	
-	m_pDevice->GetImmediateContext()->Flush();
+	m_pDevice->GetImmediateContext()->Flush(); { HRESULT devRemoved = m_pDevice->GetDeviceRemovedReason(); if(devRemoved != S_OK) RDCFATAL("device removed detected"); }
 	RDCLOG("D3D11Replay::MakePipelineState start");
 
 	D3D11PipelineState ret;
@@ -1186,7 +1186,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 		}
 	}
 	
-	m_pDevice->GetImmediateContext()->Flush();
+	m_pDevice->GetImmediateContext()->Flush(); { HRESULT devRemoved = m_pDevice->GetDeviceRemovedReason(); if(devRemoved != S_OK) RDCFATAL("device removed detected"); }
 	RDCLOG("D3D11Replay::MakePipelineState end");
 
 	return ret;
@@ -1823,9 +1823,11 @@ ReplayCreateStatus D3D11_CreateReplayDevice(const char *logfile, IReplayDriver *
 	if(SUCCEEDED(hr) && maxFeatureLevel < D3D_FEATURE_LEVEL_11_0)
 	{
 		RDCWARN("Couldn't create FEATURE_LEVEL_11_0 device - RenderDoc requires FEATURE_LEVEL_11_0 availability - falling back to WARP rasterizer");
-		driverTypes[0] = driverType = D3D_DRIVER_TYPE_WARP;
 		warpFallback = true;
 	}
+
+	if(warpFallback)
+		driverTypes[0] = driverType = D3D_DRIVER_TYPE_WARP;
 
 	D3D11DebugManager::PreDeviceInitCounters();
 

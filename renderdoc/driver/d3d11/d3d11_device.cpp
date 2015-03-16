@@ -633,6 +633,8 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
 
 const char *WrappedID3D11Device::GetChunkName(uint32_t idx)
 {
+	if(idx == INITIAL_CONTENTS)
+		return "Initial Content Data";
 	if(idx < FIRST_CHUNK_ID || idx >= NUM_D3D11_CHUNKS)
 		return "<unknown>";
 	return D3D11ChunkNames[idx-FIRST_CHUNK_ID];
@@ -944,7 +946,7 @@ void WrappedID3D11Device::ReadLogInitialisation()
 	uint64_t lastFrame = 0;
 	uint64_t firstFrame = 0;
 	
-	m_pImmediateContext->Flush();
+	m_pImmediateContext->Flush(); { HRESULT devRemoved = m_pDevice->GetDeviceRemovedReason(); if(devRemoved != S_OK) RDCFATAL("device removed detected"); }
 	RDCLOG("WrappedID3D11Device::ReadLogInitialisation()");
 
 	LazyInit();
@@ -998,6 +1000,12 @@ void WrappedID3D11Device::ReadLogInitialisation()
 		chunkIdx++;
 
 		ProcessChunk(offset, context);
+		
+		if(m_State == READING)
+		{
+			m_pImmediateContext->Flush(); { HRESULT devRemoved = m_pDevice->GetDeviceRemovedReason(); if(devRemoved != S_OK) RDCFATAL("device removed detected"); }
+			RDCLOG("03.5 WrappedID3D11Device::ReadLogInitialisation replayed %u - %s", chunkIdx, GetChunkName(context));
+		}
 
 		m_pSerialiser->PopContext(NULL, context);
 		
@@ -1042,7 +1050,7 @@ void WrappedID3D11Device::ReadLogInitialisation()
 	}
 	
 	RDCDEBUG("Allocating %llu persistant bytes of memory for the log.", m_pSerialiser->GetSize() - firstFrame);
-	m_pImmediateContext->Flush();
+	m_pImmediateContext->Flush(); { HRESULT devRemoved = m_pDevice->GetDeviceRemovedReason(); if(devRemoved != S_OK) RDCFATAL("device removed detected"); }
 	RDCLOG("end WrappedID3D11Device::ReadLogInitialisation()");
 	
 	m_pSerialiser->SetDebugText(false);
@@ -1058,6 +1066,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
 	RDCASSERT(m_State >= WRITING);
 	
 	{
+		m_pImmediateContext->Flush(); { HRESULT devRemoved = m_pDevice->GetDeviceRemovedReason(); if(devRemoved != S_OK) RDCFATAL("device removed detected"); }
 		RDCDEBUG("Prepare_InitialState(%llu)", Id);
 
 		if(type == Resource_Buffer)
@@ -1279,6 +1288,9 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
 			m_ResourceManager->SetInitialContents(Id, D3D11ResourceManager::InitialContentData(stage, 0, NULL));
 		}
 	}
+	
+	m_pImmediateContext->Flush(); { HRESULT devRemoved = m_pDevice->GetDeviceRemovedReason(); if(devRemoved != S_OK) RDCFATAL("device removed detected"); }
+	RDCDEBUG("Prepare_InitialState(%llu) complete", Id);
 
 	return true;
 }
@@ -1306,6 +1318,7 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 	}
 	
 	{
+		m_pImmediateContext->Flush(); { HRESULT devRemoved = m_pDevice->GetDeviceRemovedReason(); if(devRemoved != S_OK) RDCFATAL("device removed detected"); }
 		RDCDEBUG("Serialise_InitialState(%llu)", Id);
 
 		if(type == Resource_Buffer)
@@ -1340,6 +1353,10 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 			{
 				uav = NULL;
 				SERIALISE_ELEMENT(uint32_t, initCount, 0);
+				
+				m_pImmediateContext->Flush(); { HRESULT devRemoved = m_pDevice->GetDeviceRemovedReason(); if(devRemoved != S_OK) RDCFATAL("device removed detected"); }
+				RDCDEBUG("Serialise_InitialState(%llu) complete", Id);
+
 				return true;
 			}
 		}
@@ -1868,6 +1885,9 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 	{
 		RDCERR("Trying to serialise initial state of unsupported resource type");
 	}
+	
+	m_pImmediateContext->Flush(); { HRESULT devRemoved = m_pDevice->GetDeviceRemovedReason(); if(devRemoved != S_OK) RDCFATAL("device removed detected"); }
+	RDCDEBUG("Serialise_InitialState(%llu) complete", Id);
 
 	return true;
 }
@@ -1877,6 +1897,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 	ResourceType type = IdentifyTypeByPtr(live);
 	
 	{
+		m_pImmediateContext->Flush(); { HRESULT devRemoved = m_pDevice->GetDeviceRemovedReason(); if(devRemoved != S_OK) RDCFATAL("device removed detected"); }
 		RDCDEBUG("Create_InitialState(%llu)", id);
 
 		if(type == Resource_Buffer)
@@ -2153,13 +2174,16 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 			}
 		}
 	}
+
+	m_pImmediateContext->Flush(); { HRESULT devRemoved = m_pDevice->GetDeviceRemovedReason(); if(devRemoved != S_OK) RDCFATAL("device removed detected"); }
+	RDCDEBUG("Create_InitialState(%llu) complete", id);
 }
 
 void WrappedID3D11Device::Apply_InitialState(ID3D11DeviceChild *live, D3D11ResourceManager::InitialContentData initial)
 {
 	ResourceType type = IdentifyTypeByPtr(live);
 	
-	m_pImmediateContext->Flush();
+	m_pImmediateContext->Flush(); { HRESULT devRemoved = m_pDevice->GetDeviceRemovedReason(); if(devRemoved != S_OK) RDCFATAL("device removed detected"); }
 	RDCLOG("vv Apply_InitialState %d / %d", type, initial.num);
 
 	if(type == Resource_UnorderedAccessView)
@@ -2192,8 +2216,8 @@ void WrappedID3D11Device::Apply_InitialState(ID3D11DeviceChild *live, D3D11Resou
 		}
 	}
 
-	m_pImmediateContext->Flush();
-	RDCLOG("^^ Apply_InitialState UAV");
+	m_pImmediateContext->Flush(); { HRESULT devRemoved = m_pDevice->GetDeviceRemovedReason(); if(devRemoved != S_OK) RDCFATAL("device removed detected"); }
+	RDCLOG("^^ Apply_InitialState");
 }
 
 void WrappedID3D11Device::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv)
@@ -2207,7 +2231,7 @@ void WrappedID3D11Device::ReplayLog(uint32_t frameID, uint32_t startEventID, uin
 {
 	RDCASSERT(frameID < (uint32_t)m_FrameRecord.size());
 	
-	m_pImmediateContext->Flush();
+	m_pImmediateContext->Flush(); { HRESULT devRemoved = m_pDevice->GetDeviceRemovedReason(); if(devRemoved != S_OK) RDCFATAL("device removed detected"); }
 	RDCLOG("01 WrappedID3D11Device::ReplayLog %d->%d, %d", startEventID, endEventID, replayType);
 
 	uint64_t offs = m_FrameRecord[frameID].frameInfo.fileOffset;
@@ -2235,7 +2259,7 @@ void WrappedID3D11Device::ReplayLog(uint32_t frameID, uint32_t startEventID, uin
 		RDCLOG("02 WrappedID3D11Device::ReplayLog Applying initial contents");
 		GetResourceManager()->ApplyInitialContents();
 		GetResourceManager()->ReleaseInFrameResources();
-		m_pImmediateContext->Flush();
+		m_pImmediateContext->Flush(); { HRESULT devRemoved = m_pDevice->GetDeviceRemovedReason(); if(devRemoved != S_OK) RDCFATAL("device removed detected"); }
 		RDCLOG("03 WrappedID3D11Device::ReplayLog Done applying initial contents");
 	}
 	
@@ -2287,7 +2311,7 @@ void WrappedID3D11Device::ReplayLog(uint32_t frameID, uint32_t startEventID, uin
 		m_pImmediateContext->ReplayFakeContext(ResourceId());
 	}
 	
-	m_pImmediateContext->Flush();
+	m_pImmediateContext->Flush(); { HRESULT devRemoved = m_pDevice->GetDeviceRemovedReason(); if(devRemoved != S_OK) RDCFATAL("device removed detected"); }
 	RDCLOG("04 WrappedID3D11Device::ReplayLog Done");
 }
 
